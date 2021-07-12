@@ -1,0 +1,70 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+data = pd.read_csv('poongsan_data.csv')
+x_trained = []
+x_test = []
+
+#print(data.isnull().sum())
+#data.fillna(100)
+#print(data['gre'].min())
+#data = data.dropna()
+
+#print(data['Adj Close'])
+y_trained = data['Adj Close'].values[60:1474]
+y_test = data['Adj Close'].values[1474:1599]
+
+for i in range(len(y_trained)):
+    x_trained.append(data['Adj Close'].values[i:i+60])
+
+for i in range(len(y_test)):
+    x_test.append(data['Adj Close'].values[1474-60+i:1474+i])
+
+plt.subplot(2,1,1)
+plt.plot(y_trained,'black', linewidth=0.5)
+plt.subplot(2,1,2)
+plt.plot(y_test,'black', linewidth=1)
+#plt.plot(y_test, 'b', linewidth=1)
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(2, activation='tanh'),
+    tf.keras.layers.Dense(2, activation='tanh'),
+    tf.keras.layers.Dense(1, activation='tanh')
+    ])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(np.array(x_trained), np.array(y_trained), epochs=100)
+
+'''
+0-1473
+1473-60
+
+for i, rows in data.iterrows():
+    x_data.append([rows['gre'], rows['gpa'], rows['rank']])
+
+#print(x_data)
+#print(y_data)
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(64, activation='tanh'),
+    tf.keras.layers.Dense(128, activation='tanh'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(np.array(x_data), np.array(y_data), epochs=5000)
+
+predict = model.predict([[750, 3.7, 3], [400, 2.2, 1]])
+print(predict)
+'''
