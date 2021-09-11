@@ -53,9 +53,11 @@ x_test = x_test[:, :, np.newaxis]
 y_test = test[:,-1]
 
 model = Sequential()
-model.add(LSTM(100, input_shape=(60,1)))
-#model.add(Dropout(0.5))
-model.add(Dense(120, activation='relu'))
+model.add(LSTM(60, input_shape=(60,1), return_sequences=True))
+model.add(Dropout(0.5))
+model.add(LSTM(80, activation='relu', return_sequences=True))
+model.add(Dropout(0.5))
+model.add(LSTM(60, activation='relu'))
 model.add(Dense(1, activation='linear'))
 
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
