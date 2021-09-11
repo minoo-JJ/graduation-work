@@ -45,11 +45,10 @@ x_vld = vld[:,:-1]
 x_vld = x_vld[:, :, np.newaxis]
 y_vld = vld[:,-1]
 
-###
+'''
 x_trained = []
 x_test = []
  
-'''
 y_trained = data['Adj Close'].values[60:1414+60]
 #y_trained = pd.DataFrame(data=y_trained)
 
@@ -85,25 +84,41 @@ model.add(LSTM(60, input_shape=(60,1)))
 model.add(Dense(80, activation='relu'))
 model.add(Dense(1, activation='linear'))
 
-model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 
 model.summary()
 hist = model.fit(x_train, y_train, batch_size=10, epochs=50, validation_data=(x_vld, y_vld))
+
+#%%
+_test = pd.read_csv('poongsan_test.csv') #2021-07-03 ~ 2021-09-02 종가 기준
+test = _test.fillna(method='ffill')
+
+x_test = []
+x_test.append(data['Adj Close'].values[-60:-1])
 
 fig, ax = plt.subplots(2,1)
 
 ax[0].plot(hist.history['loss'], 'r', label='train loss')
 ax[0].plot(hist.history['val_loss'], 'b', label='validation loss')
 ax[0].legend()
-
-ax[1].plot(hist.history['accuracy'], 'r', label='train loss')
-ax[1].plot(hist.history['val_accuracy'], 'b', label='validation loss')
+'''
+ax[1].plot(hist.history['mae'], 'r', label='train loss')
+ax[1].plot(hist.history['val_mae'], 'b', label='validation loss')
 ax[1].legend()
-
+'''
 ax[0].set_xlabel('epochs')
 ax[0].set_ylabel('loss')
-ax[1].set_xlabel('epochs')
-ax[1].set_ylabel('accuracy')
-#%%
-predict = model.predict(x_test)
-print(predict)
+'''ax[1].set_xlabel('epochs')
+ax[1].set_ylabel('mae')'''
+
+x_hat = x_vld
+x_hat = np.array(x_hat)
+y_hat = model.predict(x_hat)
+y_hat = np.array(y_hat)
+
+ax[1].plot(y_hat, 'r', label = "predicted", linewidth=1)
+ax[1].plot(y_vld, 'black', label = "actual", linewidth=1)
+ax[1].legend()
+
+ax[1].set_xlabel('days')
+ax[1].set_ylabel('value')
