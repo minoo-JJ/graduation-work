@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, SimpleRNN, Dropout
 
-#정규화함수 선언
+#정규화함수 선언: 처음 값 기준, 편차로 나타내기
 def normalize(_list):
     normalized = []
     for x in _list:
@@ -22,16 +22,21 @@ def normalize(_list):
 
 
 np.random.seed(100)
-data = pd.read_csv('poongsan_data.csv')
+_data = pd.read_csv('poongsan_data.csv')
+
+data = _data.fillna(method='ffill') #null 값을 이전 값으로 대체
 
 whole = []
-for i in range(len(data['Adj Close'].values)-61):
+for i in range(len(data['Adj Close'].values)-60):
     whole.append(data['Adj Close'].values[i:i+61])
 
 whole = normalize(whole)
+#whole = np.array(whole)
 
 train = whole[:1200,:]
 vld = whole[1200:,:]
+
+np.random.shuffle(train)
 
 x_train = train[:,:-1]
 x_train = x_train[:, :, np.newaxis]
@@ -41,11 +46,9 @@ x_vld = vld[:,:-1]
 x_vld = x_vld[:, :, np.newaxis]
 y_vld = vld[:,-1]
 
+###
 x_trained = []
 x_test = []
-
-###여기까지 60개 이전 종가 + 1개 예측 값을 한 벡터로 합쳐 놓음
-
 
 #2015-01-02 ~ 2021-07-02 종가 기준 
 y_trained = data['Adj Close'].values[60:1414+60]
@@ -78,15 +81,15 @@ plt.plot(y_test, linewidth=1)
 
 
 model = Sequential()
-model.add(LSTM(100, input_shape=(60,1)))
+model.add(LSTM(60, input_shape=(60,1)))
 model.add(Dropout(0.5))
-model.add(Dense(50, activation='relu'))
-model.add(Dense(1, activation='softmax'))
+model.add(Dense(80, activation='relu'))
+model.add(Dense(1, activation='linear'))
 
-model.compile(optimizer='sgd', loss='mse', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
 
 model.summary()
-model.fit(x_trained, y_trained, epochs=20)
+model.fit(x_train, y_train, batch_size=10, epochs=20, validation_data=(x_vld, y_vld))
 
 #%%
 predict = model.predict(x_test)
