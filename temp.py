@@ -22,8 +22,8 @@ def normalize(_list):
 
 
 np.random.seed(100)
-_data = pd.read_csv('poongsan_data.csv')
 
+_data = pd.read_csv('poongsan_data.csv') #2015-01-02 ~ 2021-07-02 종가 기준
 data = _data.fillna(method='ffill') #null 값을 이전 값으로 대체
 
 whole = []
@@ -31,7 +31,6 @@ for i in range(len(data['Adj Close'].values)-60):
     whole.append(data['Adj Close'].values[i:i+61])
 
 whole = normalize(whole)
-#whole = np.array(whole)
 
 train = whole[:1200,:]
 vld = whole[1200:,:]
@@ -49,8 +48,8 @@ y_vld = vld[:,-1]
 ###
 x_trained = []
 x_test = []
-
-#2015-01-02 ~ 2021-07-02 종가 기준 
+ 
+'''
 y_trained = data['Adj Close'].values[60:1414+60]
 #y_trained = pd.DataFrame(data=y_trained)
 
@@ -78,19 +77,33 @@ plt.plot(y_trained, linewidth=0.5)
 plt.subplot(2,1,2)
 plt.plot(y_test, linewidth=1)
 #plt.plot(y_test, 'b', linewidth=1)
-
+'''
 
 model = Sequential()
 model.add(LSTM(60, input_shape=(60,1)))
-model.add(Dropout(0.5))
+#model.add(Dropout(0.5))
 model.add(Dense(80, activation='relu'))
 model.add(Dense(1, activation='linear'))
 
 model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
 
 model.summary()
-model.fit(x_train, y_train, batch_size=10, epochs=20, validation_data=(x_vld, y_vld))
+hist = model.fit(x_train, y_train, batch_size=10, epochs=50, validation_data=(x_vld, y_vld))
 
+fig, ax = plt.subplots(2,1)
+
+ax[0].plot(hist.history['loss'], 'r', label='train loss')
+ax[0].plot(hist.history['val_loss'], 'b', label='validation loss')
+ax[0].legend()
+
+ax[1].plot(hist.history['accuracy'], 'r', label='train loss')
+ax[1].plot(hist.history['val_accuracy'], 'b', label='validation loss')
+ax[1].legend()
+
+ax[0].set_xlabel('epochs')
+ax[0].set_ylabel('loss')
+ax[1].set_xlabel('epochs')
+ax[1].set_ylabel('accuracy')
 #%%
 predict = model.predict(x_test)
 print(predict)
