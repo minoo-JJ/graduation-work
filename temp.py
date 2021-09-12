@@ -7,8 +7,9 @@ This is a temporary script file.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.models import Sequential
-from keras.layers import LSTM, Dense, SimpleRNN, Dropout
+from keras.models import Sequential, Model
+from keras.layers import LSTM, Dense, Dropout, SimpleRNN
+from keras.layers import Input
 
 #정규화함수 선언: 처음 값 기준, 편차로 나타내기
 def normalize(_list):
@@ -51,19 +52,49 @@ y_vld = vld[:,-1]
 x_test = test[:,:-1]
 x_test = x_test[:, :, np.newaxis]
 y_test = test[:,-1]
+#%%
+encoding_dim = 35
+input_val = Input(shape=(60,))
+encoded = Dense(encoding_dim, activation='relu')(input_val)
+decoded = Dense(60, activation='linear')(encoded)
 
+autoencoder = Model(input_val, decoded)
+
+encoder = Model(input_val, encoded)
+encoded_input = Input(shape=(encoding_dim,))
+decoder_layer = autoencoder.layers[-1]
+decoder = Model(encoded_input, decoder_layer(encoded_input))
+
+autoencoder.compile(optimizer='adam', loss='mse')
+autoencoder.summary()
+
+hist_auto = autoencoder.fit(x_train, x_train, batch_size=10, epochs=200
+                ,validation_data=(x_vld, x_vld), shuffle=True)
+#%% 
+x_hat = autoencoder.predict(x_test)
+
+plt.figure()
+plt.plot(hist_auto.history['loss'], 'r', label='train loss')
+plt.plot(hist_auto.history['val_loss'], 'b', label='validation loss')
+plt.legend()
+
+plt.xlabel('epochs')
+plt.ylabel('loss')
+
+plt.ylim(0,0.001)
+#%%
 model = Sequential()
-model.add(LSTM(60, input_shape=(60,1), return_sequences=True))
+model.add(LSTM(80, input_shape=(60,1), return_sequences=True))
 model.add(Dropout(0.5))
-model.add(LSTM(80, activation='relu', return_sequences=True))
-model.add(Dropout(0.5))
-model.add(LSTM(60, activation='relu'))
+model.add(LSTM(100, activation='relu', return_sequences=False))
+#model.add(Dropout(0.5))
+#model.add(LSTM(60, activation='relu'))
 model.add(Dense(1, activation='linear'))
 
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 
 model.summary()
-hist = model.fit(x_train, y_train, batch_size=10, epochs=100, validation_data=(x_vld, y_vld))
+hist = model.fit(x_train, y_train, batch_size=20, epochs=100, validation_data=(x_vld, y_vld))
 #%%
 fig, ax = plt.subplots(2,1)
 
@@ -79,6 +110,9 @@ ax[0].set_xlabel('epochs')
 ax[0].set_ylabel('loss')
 ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('mae')
+
+ax[0].set_ylim(0,0.004)
+ax[1].set_ylim(0,0.05)
 
 y_hat = model.predict(x_test)
 
