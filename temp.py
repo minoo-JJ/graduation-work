@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from keras.models import Sequential, Model
 from keras.layers import LSTM, Dense, Dropout, SimpleRNN
-from keras.layers import Input
+from keras.layers import Input, Conv2D, MaxPool2D, UpSampling2D
 
 #정규화함수 선언: 처음 값 기준, 편차로 나타내기
 def normalize(_list):
@@ -68,11 +68,11 @@ decoder = Model(encoded_input, decoder_layer(encoded_input))
 autoencoder.compile(optimizer='adam', loss='mse')
 autoencoder.summary()
 
-hist_auto = autoencoder.fit(x_train, x_train, batch_size=10, epochs=200
-                ,validation_data=(x_vld, x_vld), shuffle=True)
+hist_auto = autoencoder.fit(x_train, x_train
+                            , batch_size=8, epochs=200
+                            , validation_data=(x_vld, x_vld)
+                            , shuffle=True)
 #%% 
-x_hat = autoencoder.predict(x_test)
-
 plt.figure()
 plt.plot(hist_auto.history['loss'], 'r', label='train loss')
 plt.plot(hist_auto.history['val_loss'], 'b', label='validation loss')
@@ -92,9 +92,13 @@ model.add(LSTM(100, activation='relu', return_sequences=False))
 model.add(Dense(1, activation='linear'))
 
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
-
 model.summary()
-hist = model.fit(x_train, y_train, batch_size=20, epochs=100, validation_data=(x_vld, y_vld))
+
+x_auto = autoencoder.predict(x_train)
+x_auto = x_auto[:, :, np.newaxis]
+
+hist = model.fit(x_auto, y_train, batch_size=20, epochs=100
+                 , validation_data=(x_vld, y_vld))
 #%%
 fig, ax = plt.subplots(2,1)
 
