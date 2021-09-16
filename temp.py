@@ -4,6 +4,7 @@ Spyder Editor
 
 This is a temporary script file.
 """
+import tensorflow as tf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,6 +21,17 @@ def normalize(_list):
     return np.array(normalized)
 
 #하이퍼파라미터 설정하기
+
+#상승/하강에 대한 loss function 정의 
+def updown(true, pred):
+    updown = 0    
+    for i in range(len(pred)-1):
+        if (pred[i][0]-pred[i+1][0]>=0 and true[i]-true[i+1]>=0):
+            updown -= 1
+        elif (pred[i][0]-pred[i+1][0]<0 and true[i]-true[i+1]<0): 
+            updown -= 1
+        else:
+            updown += 1
 
 
 np.random.seed(10)
@@ -53,7 +65,6 @@ x_test = test[:,:-1]
 x_test = x_test[:, :, np.newaxis]
 y_test = test[:,-1]
 #%% 노이즈 추가 
-
 noise = 0.01
 
 x_train_noisy = x_train + noise * np.random.normal(0,1,size=x_train.shape)
@@ -96,7 +107,7 @@ decoded = Conv1D(1, 10, activation='linear', padding='same')(x)
 autoencoder = Model(input_val, decoded)
 autoencoder.compile(optimizer='adam', loss='mse')
 autoencoder.summary()'''
-
+#%%
 Model = Sequential()
 Model.add(Conv1D(35, 10, input_shape=(60,1), activation='relu', padding='same'))
 Model.add(MaxPool1D(5, padding='same'))
@@ -121,7 +132,7 @@ plt.legend()
 plt.xlabel('epochs')
 plt.ylabel('loss')
 
-#plt.ylim(0,0.001)
+plt.ylim(0,0.001)
 #%%
 model = Sequential()
 model.add(LSTM(35, input_shape=(60,1), return_sequences=True))
@@ -137,7 +148,7 @@ model.summary()
 x_auto = autoencoder.predict(x_train_noisy)
 x_auto = x_auto[:, :, np.newaxis]
 
-hist = model.fit(x_auto, y_train, batch_size=20, epochs=50
+hist = model.fit(x_auto, y_train, batch_size=20, epochs=100
                  , validation_data=(x_vld, y_vld))
 #%%
 fig, ax = plt.subplots(2,1)
