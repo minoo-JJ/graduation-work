@@ -23,17 +23,20 @@ def normalize(_list):
 #하이퍼파라미터 설정하기
 
 #상승/하강에 대한 loss function 정의 
-def updown(true, pred):
-    updown = 0    
-    for i in range(len(pred)-1):
-        if (pred[i][0]-pred[i+1][0]>=0 and true[i]-true[i+1]>=0):
-            updown -= 1
-        elif (pred[i][0]-pred[i+1][0]<0 and true[i]-true[i+1]<0): 
-            updown -= 1
+def updown(y_true, y_pred):
+    loss = 0    
+    y_true = y_true.numpy()
+    y_pred = y_pred.numpy()  #여기서 오류 해결
+    for i in range(y_pred.shape[0]-1):
+        if (y_pred[i]-y_pred[i+1]>=0 and y_true[i]-y_true[i+1]>=0):
+            loss -= 1
+        elif (y_pred[i]-y_pred[i+1]<0 and y_true[i]-y_true[i+1]<0): 
+            loss -= 1
         else:
-            updown += 1
+            loss += 1
+    return loss
 
-
+#%% pre-processing
 np.random.seed(10)
 
 #2015-01-02 ~ 2021-07-03 종가 기준
@@ -70,7 +73,7 @@ noise = 0.01
 x_train_noisy = x_train + noise * np.random.normal(0,1,size=x_train.shape)
 x_vld_noisy = x_vld + noise * np.random.normal(0,1,size=x_vld.shape)
 
-#%%
+#%% 오토인코더 
 encoding_dim = 35
 input_val = Input(shape=(60,))
 encoded = Dense(encoding_dim, activation='relu')(input_val)
@@ -108,6 +111,7 @@ autoencoder = Model(input_val, decoded)
 autoencoder.compile(optimizer='adam', loss='mse')
 autoencoder.summary()'''
 #%%
+'''
 Model = Sequential()
 Model.add(Conv1D(35, 10, input_shape=(60,1), activation='relu', padding='same'))
 Model.add(MaxPool1D(5, padding='same'))
@@ -122,8 +126,8 @@ Model.add(Dense(60, activation='linear'))
 hist_auto = autoencoder.fit(x_train_noisy, x_train
                             , batch_size=8, epochs=200
                             , validation_data=(x_vld_noisy, x_vld)
-                            , shuffle=True)
-#%%
+                            , shuffle=True)'''
+#%% 오토인코더 error 체크 
 plt.figure()
 plt.plot(hist_auto.history['loss'], 'r', label='train loss')
 plt.plot(hist_auto.history['val_loss'], 'b', label='validation loss')
@@ -133,7 +137,7 @@ plt.xlabel('epochs')
 plt.ylabel('loss')
 
 plt.ylim(0,0.001)
-#%%
+#%% LSTM 학습 
 model = Sequential()
 model.add(LSTM(35, input_shape=(60,1), return_sequences=True))
 model.add(Dropout(0.5))
@@ -142,15 +146,15 @@ model.add(LSTM(70, activation='relu', return_sequences=False))
 #model.add(LSTM(60, activation='relu'))
 model.add(Dense(1, activation='linear'))
 
-model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+model.compile(optimizer='adam', loss=updown, metrics=['mae'])
 model.summary()
 
 x_auto = autoencoder.predict(x_train_noisy)
 x_auto = x_auto[:, :, np.newaxis]
 
-hist = model.fit(x_auto, y_train, batch_size=20, epochs=100
+hist = model.fit(x_auto, y_train, batch_size=20, epochs=50
                  , validation_data=(x_vld, y_vld))
-#%%
+#%% LSTM error 체크 
 fig, ax = plt.subplots(2,1)
 
 ax[0].plot(hist.history['loss'], 'r', label='train loss')
