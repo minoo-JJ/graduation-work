@@ -5,6 +5,7 @@ Spyder Editor
 This is a temporary script file.
 """
 import tensorflow as tf
+import torch
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,10 +25,10 @@ def normalize(_list):
 
 #상승/하강에 대한 loss function 정의 
 def updown(y_true, y_pred):
-    loss = 0    
+    loss = 0
     y_true = y_true.numpy()
-    y_pred = y_pred.numpy()  #여기서 오류 해결
-    for i in range(y_pred.shape[0]-1):
+    y_pred = y_pred.numpy()  #여기 오류 해결해야 함
+    for i in range(len(y_pred)-1):
         if (y_pred[i]-y_pred[i+1]>=0 and y_true[i]-y_true[i+1]>=0):
             loss -= 1
         elif (y_pred[i]-y_pred[i+1]<0 and y_true[i]-y_true[i+1]<0): 
@@ -137,7 +138,7 @@ plt.xlabel('epochs')
 plt.ylabel('loss')
 
 plt.ylim(0,0.001)
-#%% LSTM 학습 
+#%% LSTM 학습, loss function 바꾸기 
 model = Sequential()
 model.add(LSTM(35, input_shape=(60,1), return_sequences=True))
 model.add(Dropout(0.5))
@@ -148,7 +149,6 @@ model.add(Dense(1, activation='linear'))
 
 model.compile(optimizer='adam', loss=updown, metrics=['mae'])
 model.summary()
-
 x_auto = autoencoder.predict(x_train_noisy)
 x_auto = x_auto[:, :, np.newaxis]
 
