@@ -5,13 +5,13 @@ Spyder Editor
 This is a temporary script file.
 """
 import tensorflow as tf
-import torch
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.models import Sequential, Model
 from keras.layers import LSTM, Dense, Dropout, SimpleRNN
 from keras.layers import Input, Conv1D, MaxPool1D, UpSampling1D
+from keras.backend import greater_equal, less
 
 #정규화함수 선언: 처음 값 기준, 편차로 나타내기
 def normalize(_list):
@@ -26,17 +26,16 @@ def normalize(_list):
 #상승/하강에 대한 loss function 정의 
 def updown(y_true, y_pred):
     loss = 0
-    y_true = y_true.numpy()
-    y_pred = y_pred.numpy()  #여기 오류 해결해야 함
-    for i in range(len(y_pred)-1):
-        if (y_pred[i]-y_pred[i+1]>=0 and y_true[i]-y_true[i+1]>=0):
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    for i in range(y_true.shape[0]-1):
+        if (y_pred[i]>=y_pred[i+1] and y_true[i]>=y_true[i+1]):
             loss -= 1
-        elif (y_pred[i]-y_pred[i+1]<0 and y_true[i]-y_true[i+1]<0): 
+        elif (y_pred[i]<y_pred[i+1] and y_true[i]<y_true[i+1]): 
             loss -= 1
         else:
             loss += 1
     return loss
-
 #%% pre-processing
 np.random.seed(10)
 
