@@ -186,7 +186,7 @@ model.summary()
 x_auto = autoencoder.predict(x_train_noisy)
 x_auto = x_auto[:, :, np.newaxis]
 
-hist = model.fit(x_auto, y_train, batch_size=20, epochs=50
+hist = model.fit(x_auto, y_train, batch_size=20, epochs=80
                  , validation_data=(x_vld, y_vld))
 #%% 모델2 학습
 model2 = Sequential()
@@ -202,7 +202,7 @@ model2.summary()
 #x_auto2 = autoencoder2.predict(x_train_noisy2)
 #x_auto2 = x_auto2[:, :, np.newaxis]
 
-hist2 = model2.fit(x_train2, y_train2, batch_size=2, epochs=50
+hist2 = model2.fit(x_train2, y_train2, batch_size=2, epochs=80
                  , validation_data=(x_vld2, y_vld2))
 #%% 모델 error 체크 
 fig, ax = plt.subplots(2,1)
@@ -221,7 +221,7 @@ ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('loss')
 
 ax[0].set_ylim(0,0.004)
-ax[1].set_ylim(0,0.02)
+ax[1].set_ylim(0,0.01)
 #%% 예측 결과
 y_hat = model.predict(x_test)
 y_hat2 = model2.predict(x_test2)
@@ -232,13 +232,13 @@ ax[0].plot(y_hat, 'r', label = "predicted", linewidth=1)
 ax[0].plot(y_test, 'black', label = "actual", linewidth=1)
 ax[0].legend()
 
-ax[1].plot(y_hat2, 'r', label = "predicted", linewidth=1)
-ax[1].plot(y_test2, 'black', label = "actual", linewidth=1)
+ax[1].plot(y_hat2[:,0], 'r', label = "predicted", linewidth=1)
+ax[1].plot(y_test2[:,0,:], 'black', label = "actual", linewidth=1)
 ax[1].legend()
 
-ax[0].xlabel('days')
-ax[0].ylabel('value')
-ax[1].xlabel('days')
-ax[1].ylabel('value')
+ax[0].set_xlabel('days')
+ax[0].set_ylabel('value')
+ax[1].set_xlabel('days')
+ax[1].set_ylabel('value')
 
 #plt.ylim(0,0.05)
