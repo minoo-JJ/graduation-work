@@ -150,9 +150,9 @@ decoder = Model(encoded_input, decoder_layer(encoded_input))
 autoencoder2.compile(optimizer='adam', loss='binary_crossentropy')
 autoencoder2.summary()
 
-hist_auto2 = autoencoder2.fit(x_train_noisy2, train2[:,:-1]
+hist_auto2 = autoencoder2.fit(x_train_noisy2, train2
                             , batch_size=1, epochs=10
-                            , validation_data=(x_vld_noisy2, vld2[:,:-1])
+                            , validation_data=(x_vld_noisy2, vld2)
                             , shuffle=True)
 #%% 오토인코더 error 체크 
 fig, ax = plt.subplots(2,1)
@@ -171,8 +171,8 @@ ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('loss')
 
 ax[0].set_ylim(0.0001,0.001)
-ax[1].set_ylim(0,0.01)
-#%% 모델1 학습, loss function 바꾸기 
+#ax[1].set_ylim(0,0.02)
+#%% 모델1 학습
 model = Sequential()
 model.add(LSTM(35, input_shape=(60,1), return_sequences=True))
 model.add(Dropout(0.5))
@@ -195,14 +195,14 @@ model2.add(LSTM(10, input_shape=(2,1), return_sequences=True))
 model2.add(LSTM(20, activation='relu', return_sequences=False))
 #model.add(Dropout(0.5))
 #model.add(LSTM(60, activation='relu'))
-model2.add(Dense(1, activation='sigmoid'))
+model2.add(Dense(2, activation='sigmoid'))
 
 model2.compile(optimizer='adam', loss='binary_crossentropy')
 model2.summary()
-x_auto2 = autoencoder2.predict(x_train_noisy2)
-x_auto2 = x_auto2[:, :, np.newaxis]
+#x_auto2 = autoencoder2.predict(x_train_noisy2)
+#x_auto2 = x_auto2[:, :, np.newaxis]
 
-hist2 = model2.fit(x_auto2, y_train2, batch_size=2, epochs=50
+hist2 = model2.fit(x_train2, y_train2, batch_size=2, epochs=50
                  , validation_data=(x_vld2, y_vld2))
 #%% 모델 error 체크 
 fig, ax = plt.subplots(2,1)
