@@ -51,20 +51,20 @@ for i in range(len(data['Adj Close'].values)-60):
 
 whole = normalize(whole)
 
-train = whole[:1200,:]
-vld = whole[1200:1540,:]
+train = whole[:1540,:]
+#vld = whole[1200:1540,:]
 test = whole[1540:,:]
 
 np.random.shuffle(train)
-np.random.shuffle(vld)
+#np.random.shuffle(vld)
 
-x_train = train[:,:-1]
+x_train = train[:1200,:-1]
 x_train = x_train[:, :, np.newaxis]
-y_train = train[:,-1]
+y_train = train[:1200,-1]
 
-x_vld = vld[:,:-1]
+x_vld = train[1200:1540,:-1]
 x_vld = x_vld[:, :, np.newaxis]
-y_vld = vld[:,-1]
+y_vld = train[1200:1540,-1]
 
 x_test = test[:,:-1]
 x_test = x_test[:, :, np.newaxis]
@@ -77,14 +77,14 @@ for i in range(len(data['Adj Close'].values)-1):
 
 whole2 = normalize(whole2)
 
-train2 = whole2[:1250,:]
-vld2 = whole2[1250:1600,:]
+train2 = whole2[:1600,:]
+#vld2 = whole2[1250:1600,:]
 test2 = whole2[1600:,:]
 
 np.random.shuffle(train2)
-np.random.shuffle(vld2)
+#np.random.shuffle(vld2)
 
-x_train2 = train2[:, :, np.newaxis]
+x_train2 = train2[:1250, :, np.newaxis]
 y_train2 = np.zeros(x_train2.shape)
 for i in range(len(x_train2)):
     if x_train2[i][1] > 0:
@@ -92,7 +92,7 @@ for i in range(len(x_train2)):
     elif x_train2[i][1] < 0:
         y_train2[i][0] = 1
 
-x_vld2 = vld2[:, :, np.newaxis]
+x_vld2 = train2[1250:1600, :, np.newaxis]
 y_vld2 = np.zeros(x_vld2.shape)
 for i in range(len(x_vld2)):
     if x_vld2[i][1] > 0:
@@ -110,10 +110,10 @@ for i in range(len(x_test2)):
 #%% 노이즈 추가 
 noise = 0.01
 
-x_train_noisy = train[:,:-1] + noise * np.random.normal(0,1,size=train[:,:-1].shape)
-x_vld_noisy = vld[:,:-1] + noise * np.random.normal(0,1,size=vld[:,:-1].shape)
-x_train_noisy2 = train2 + noise * np.random.normal(0,1,size=train2.shape)
-x_vld_noisy2 = vld2 + noise * np.random.normal(0,1,size=vld2.shape)
+x_train_noisy = train[:1200,:-1] + noise * np.random.normal(0,1,size=train[:1200,:-1].shape)
+x_vld_noisy = train[1200:1540,:-1] + noise * np.random.normal(0,1,size=train[1200:1540,:-1].shape)
+x_train_noisy2 = train2[:1250] + noise * np.random.normal(0,1,size=train2[:1250].shape)
+x_vld_noisy2 = train2[1250:1600] + noise * np.random.normal(0,1,size=train2[1250:1600].shape)
 #%% 오토인코더 for window1
 encoding_dim = 35
 input_val = Input(shape=(60,))
@@ -130,9 +130,9 @@ decoder = Model(encoded_input, decoder_layer(encoded_input))
 autoencoder.compile(optimizer='adam', loss='mse')
 autoencoder.summary()
 
-hist_auto = autoencoder.fit(x_train_noisy, train[:,:-1]
-                            , batch_size=8, epochs=200
-                            , validation_data=(x_vld_noisy, vld[:,:-1])
+hist_auto = autoencoder.fit(x_train_noisy, train[:1200,:-1]
+                            , batch_size=8, epochs=300
+                            , validation_data=(x_vld_noisy, train[1200:1540,:-1])
                             , shuffle=True)
 #%% 오토인코더 for window2
 encoding_dim = 1
@@ -150,9 +150,9 @@ decoder = Model(encoded_input, decoder_layer(encoded_input))
 autoencoder2.compile(optimizer='adam', loss='binary_crossentropy')
 autoencoder2.summary()
 
-hist_auto2 = autoencoder2.fit(x_train_noisy2, train2
+hist_auto2 = autoencoder2.fit(x_train_noisy2, train2[:1250]
                             , batch_size=1, epochs=10
-                            , validation_data=(x_vld_noisy2, vld2)
+                            , validation_data=(x_vld_noisy2, train2[1250:1600])
                             , shuffle=True)
 #%% 오토인코더 error 체크 
 fig, ax = plt.subplots(2,1)
@@ -170,7 +170,7 @@ ax[0].set_ylabel('loss')
 ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('loss')
 
-ax[0].set_ylim(0.0001,0.001)
+ax[0].set_ylim(0.0001,0.0003)
 #ax[1].set_ylim(0,0.02)
 #%% 모델1 학습
 model = Sequential()
@@ -221,7 +221,7 @@ ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('loss')
 
 ax[0].set_ylim(0,0.004)
-ax[1].set_ylim(0,0.01)
+ax[1].set_ylim(0,0.03)
 #%% 예측 결과
 y_hat = model.predict(x_test)
 y_hat2 = model2.predict(x_test2)
