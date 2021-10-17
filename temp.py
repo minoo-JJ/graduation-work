@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.models import Sequential, Model
-from keras.layers import LSTM, Dense, Dropout, Input
+from keras.layers import LSTM, Dense, Dropout, Input, Bidirectional
 #from keras.layers import SimpleRNN, Conv1D, MaxPool1D, UpSampling1D
 #from keras.backend import greater_equal, less
 
@@ -72,48 +72,56 @@ y_test = test[:,-1]
 #%%pre-processing for window2
 whole2 = []
 
-for i in range(len(data['Adj Close'].values)-1):
-    whole2.append(data['Adj Close'].values[i:i+2])
+for i in range(len(data['Adj Close'].values)-60):
+    whole2.append(data['Adj Close'].values[i:i+61])
 
 whole2 = normalize(whole2)
 
-train2 = whole2[:1600,:]
-#vld2 = whole2[1250:1600,:]
-test2 = whole2[1600:,:]
+train2 = whole2[:1540,:]
+#vld2 = whole2[1200:1540,:]
+test2 = whole2[1540:,:]
 
 np.random.shuffle(train2)
 #np.random.shuffle(vld2)
 
-x_train2 = train2[:1250, :, np.newaxis]
-y_train2 = np.zeros(x_train2.shape)
+x_train2 = train2[:1200,:-1]
+x_train2 = x_train2[:, :, np.newaxis]
+y_train2 = np.zeros(x_train2.shape[0])
+
 for i in range(len(x_train2)):
-    if x_train2[i][1] > 0:
-        y_train2[i][1] = 1
-    elif x_train2[i][1] < 0:
-        y_train2[i][0] = 1
+    if x_train2[i][-2] - train2[i,-1] > 0:   # 증가 = 1
+        y_train2[i] = 1
+    elif x_train2[i][-1] - train2[i,-1] < 0: # 감소 = 0
+        y_train2[i] = 0
 
-x_vld2 = train2[1250:1600, :, np.newaxis]
-y_vld2 = np.zeros(x_vld2.shape)
+x_vld2 = train2[1200:1540,:-1]
+x_vld2 = x_vld2[:, :, np.newaxis]
+y_vld2 = np.zeros(x_vld2.shape[0])
+
 for i in range(len(x_vld2)):
-    if x_vld2[i][1] > 0:
-        y_vld2[i][1] = 1
-    elif x_vld2[i][1] < 0:
-        y_vld2[i][0] = 1
+    if x_vld2[i][-1] - train2[i,-1] > 0:
+        y_vld2[i] = 1
+    elif x_vld2[i][-1] - train2[i,-1] < 0:
+        y_vld2[i] = 0
 
-x_test2 = test2[:, :, np.newaxis]
-y_test2 = np.zeros(x_test2.shape)
+x_test2 = test2[:,:-1]
+x_test2 = x_test2[:, :, np.newaxis]
+y_test2 = np.zeros(x_test2.shape[0])
+
 for i in range(len(x_test2)):
-    if x_test2[i][1] > 0:
-        y_test2[i][1] = 1
-    elif x_test2[i][1] < 0:
-        y_test2[i][0] = 1
+    if x_test2[i][-1] - test2[i,-1] > 0:
+        y_test2[i] = 1
+    elif x_test2[i][1] - test2[i,-1] < 0:
+        y_test2[i] = 0
 #%% 노이즈 추가 
 noise = 0.01
 
 x_train_noisy = train[:1200,:-1] + noise * np.random.normal(0,1,size=train[:1200,:-1].shape)
 x_vld_noisy = train[1200:1540,:-1] + noise * np.random.normal(0,1,size=train[1200:1540,:-1].shape)
-x_train_noisy2 = train2[:1250] + noise * np.random.normal(0,1,size=train2[:1250].shape)
-x_vld_noisy2 = train2[1250:1600] + noise * np.random.normal(0,1,size=train2[1250:1600].shape)
+'''x_train_noisy2 = train2[:1250] + noise * np.random.normal(0,1,size=train2[:1250].shape)
+x_vld_noisy2 = train2[1250:1600] + noise * np.random.normal(0,1,size=train2[1250:1600].shape)'''
+x_train_noisy2 = train2[:1200,:-1] + noise * np.random.normal(0,1,size=train2[:1200,:-1].shape)
+x_vld_noisy2 = train2[1200:1540,:-1] + noise * np.random.normal(0,1,size=train2[1200:1540,:-1].shape)
 #%% 오토인코더 for window1
 encoding_dim = 35
 input_val = Input(shape=(60,))
@@ -135,10 +143,10 @@ hist_auto = autoencoder.fit(x_train_noisy, train[:1200,:-1]
                             , validation_data=(x_vld_noisy, train[1200:1540,:-1])
                             , shuffle=True)
 #%% 오토인코더 for window2
-encoding_dim = 1
-input_val = Input(shape=(2,))
+encoding_dim = 35
+input_val = Input(shape=(60,))
 encoded = Dense(encoding_dim, activation='relu')(input_val)
-decoded = Dense(2, activation='sigmoid')(encoded)
+decoded = Dense(60, activation='sigmoid')(encoded)
 
 autoencoder2 = Model(input_val, decoded)
 
@@ -147,12 +155,16 @@ encoded_input = Input(shape=(encoding_dim,))
 decoder_layer = autoencoder2.layers[-1]
 decoder = Model(encoded_input, decoder_layer(encoded_input))
 
-autoencoder2.compile(optimizer='adam', loss='binary_crossentropy')
+autoencoder2.compile(optimizer='adam', loss='mse')
 autoencoder2.summary()
 
-hist_auto2 = autoencoder2.fit(x_train_noisy2, train2[:1250]
+'''hist_auto2 = autoencoder2.fit(x_train_noisy2, train2[:1250]
                             , batch_size=1, epochs=10
                             , validation_data=(x_vld_noisy2, train2[1250:1600])
+                            , shuffle=True)'''
+hist_auto2 = autoencoder2.fit(x_train_noisy2, train2[:1200,:-1]
+                            , batch_size=8, epochs=300
+                            , validation_data=(x_vld_noisy2, train2[1200:1540,:-1])
                             , shuffle=True)
 #%% 오토인코더 error 체크 
 fig, ax = plt.subplots(2,1)
@@ -188,6 +200,22 @@ x_auto = x_auto[:, :, np.newaxis]
 
 hist = model.fit(x_auto, y_train, batch_size=20, epochs=80
                  , validation_data=(x_vld, y_vld))
+#%% Bidirestional
+x_input = Input((60,1))
+x_lstm = Bidirectional(LSTM(10, return_sequences=True)\
+                       , merge_mode='concat')(x_input)
+x_lstm2 = Bidirectional(LSTM(20, return_sequences=False), merge_mode='concat')(x_lstm)
+y_output = Dense(1, activation='linear')(x_lstm2)
+model3 = Model(x_input, y_output)
+
+model3.summary()
+
+model3.compile(optimizer='adam', loss='mse')
+x_auto = autoencoder.predict(x_train_noisy)
+x_auto = x_auto[:, :, np.newaxis]
+
+hist3 = model3.fit(x_auto, y_train, batch_size=20, epochs=80
+                 , validation_data=(x_vld, y_vld))
 #%% 모델2 학습
 model2 = Sequential()
 model2.add(LSTM(10, input_shape=(2,1), return_sequences=True))
@@ -204,15 +232,30 @@ model2.summary()
 
 hist2 = model2.fit(x_train2, y_train2, batch_size=2, epochs=80
                  , validation_data=(x_vld2, y_vld2))
+#%% Bidirectional
+x_input = Input((60,1))
+x_lstm = LSTM(60, return_sequences=True)(x_input)
+x_lstm2 = LSTM(120)(x_lstm)
+y_output = Dense(1, activation='sigmoid')(x_lstm2)
+model4 = Model(x_input, y_output)
+
+model4.summary()
+
+model4.compile(optimizer='adam', loss='binary_crossentropy')
+#x_auto2 = autoencoder2.predict(x_train_noisy2)
+#x_auto2 = x_auto2[:, :, np.newaxis]
+
+hist4 = model4.fit(x_train2, y_train2, batch_size=2, epochs=50
+                 , validation_data=(x_vld2, y_vld2))
 #%% 모델 error 체크 
 fig, ax = plt.subplots(2,1)
 
-ax[0].plot(hist.history['loss'], 'r', label='train loss')
-ax[0].plot(hist.history['val_loss'], 'b', label='validation loss')
+ax[0].plot(hist3.history['loss'], 'r', label='train loss')
+ax[0].plot(hist3.history['val_loss'], 'b', label='validation loss')
 ax[0].legend()
 
-ax[1].plot(hist2.history['loss'], 'r', label='train loss')
-ax[1].plot(hist.history['val_loss'], 'b', label='validation loss')
+ax[1].plot(hist4.history['loss'], 'r', label='train loss')
+ax[1].plot(hist4.history['val_loss'], 'b', label='validation loss')
 ax[1].legend()
 
 ax[0].set_xlabel('epochs')
@@ -220,11 +263,11 @@ ax[0].set_ylabel('loss')
 ax[1].set_xlabel('epochs')
 ax[1].set_ylabel('loss')
 
-ax[0].set_ylim(0,0.004)
-ax[1].set_ylim(0,0.03)
+ax[0].set_ylim(0,0.002)
+#ax[1].set_ylim(0,0.03)
 #%% 예측 결과
-y_hat = model.predict(x_test)
-y_hat2 = model2.predict(x_test2)
+y_hat = model3.predict(x_test)
+y_hat2 = model4.predict(x_test2)
 
 fig, ax = plt.subplots(2,1)
 
@@ -232,8 +275,8 @@ ax[0].plot(y_hat, 'r', label = "predicted", linewidth=1)
 ax[0].plot(y_test, 'black', label = "actual", linewidth=1)
 ax[0].legend()
 
-ax[1].plot(y_hat2[:,0], 'r', label = "predicted", linewidth=1)
-ax[1].plot(y_test2[:,0,:], 'black', label = "actual", linewidth=1)
+ax[1].plot(y_hat2, 'r', label = "predicted", linewidth=1)
+ax[1].plot(y_test2, 'black', label = "actual", linewidth=1)
 ax[1].legend()
 
 ax[0].set_xlabel('days')
